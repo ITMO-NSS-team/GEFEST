@@ -9,6 +9,7 @@ class GA(BaseGA):
 
         self.fitness()
         best = None
+
         while self.generation_number <= self.params.max_gens:
             print(f'Generation {self.generation_number}')
 

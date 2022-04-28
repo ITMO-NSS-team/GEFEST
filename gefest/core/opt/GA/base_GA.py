@@ -1,8 +1,9 @@
-import copy
 import math
+from copy import deepcopy
 from random import randint
 
 import numpy as np
+from fedot.core.optimisers.opt_history import OptHistory
 
 from gefest.core.opt.individual import Individual
 from gefest.core.opt.setup import Setup
@@ -27,19 +28,18 @@ class BaseGA:
         self.__init_operators()
         self.__init_populations()
 
-        self.visualiser = StructVizualizer(self.task_setup.domain)
+        self.visualiser = StructVizualizer(self.task_setup.domain) \
+            if not visualiser else visualiser
 
         self.generation_number = 0
 
     def __init_operators(self):
         self.init_population = self.operators.init_population
-        self.crossover = self.operators.crossover
+        self.crossover = self.operators.one_point_crossover
         self.mutation = self.operators.mutation
 
     def __init_populations(self):
-
-        gens = self.init_population(self.params.pop_size, self.task_setup.domain)
-        self._pop = [Individual(genotype=gen) for gen in gens]
+        self._pop = [Individual(s) for s in self.init_population(self.params.pop_size, self.task_setup.domain)]
 
     class Params:
         def __init__(self, max_gens, pop_size, crossover_rate, mutation_rate, mutation_value_rate):
@@ -96,9 +96,9 @@ class BaseGA:
                                       domain=self.task_setup.domain,
                                       rate=self.params.mutation_rate)
 
-            if str(child_gen) != str(p1.genotype) and str(child_gen) != str(p2.genotype):
-                child = Individual(genotype=copy.deepcopy(child_gen))
-                child.generation_number = self.generation_number
-                children.append(child)
+            if str(child_gen) != str(p1) and str(child_gen) != str(p2):
+                child_ind = Individual(deepcopy(child_gen))
+                child_ind.generation_number = self.generation_number
+                children.append(child_ind)
 
         return children

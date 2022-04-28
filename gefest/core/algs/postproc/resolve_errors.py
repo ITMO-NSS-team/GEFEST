@@ -1,9 +1,11 @@
-import numpy as np
+from collections import Counter
 from copy import deepcopy
 from itertools import permutations
-from collections import Counter
 
-from gefest.core.algs.geom.validation import out_of_bound, self_intersection, too_close, unclosed_poly, intersection
+import numpy as np
+
+from gefest.core.algs.geom.validation import out_of_bound, self_intersection, too_close, unclosed_poly
+from gefest.core.opt.constraints import check_constraints
 from gefest.core.structure.domain import Domain
 from gefest.core.structure.point import Point
 from gefest.core.structure.polygon import Polygon
@@ -33,10 +35,24 @@ def postprocess(structure: Structure, domain: Domain):
             corrected_structure.polygons[i] = _correct_self_intersection(poly, domain)
         elif out_of_bound(local_structure, domain):
             corrected_structure.polygons[i] = _correct_wrong_point(poly, domain)
-        elif unclosed_poly(local_structure, domain) and domain.is_closed:
+        elif unclosed_poly(local_structure, domain) and domain.geometry.is_closed:
             corrected_structure.polygons[i] = _correct_unclosed_poly(poly)
 
     return corrected_structure
+
+
+def iterative_postprocess(new_structure, default_structure, domain, max_attempts=3):
+    constraints = False
+    while not constraints:
+        new_structure = postprocess(new_structure, domain)
+        constraints = check_constraints(structure=new_structure, domain=domain)
+        max_attempts -= 1
+        if max_attempts == 0:
+            # If the number of attempts is over,
+            # the transformation is considered unsuccessful
+            # and one of the structures is returned
+            return default_structure
+    return new_structure
 
 
 def _correct_low_points(poly: 'Polygon',
